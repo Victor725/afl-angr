@@ -1247,22 +1247,22 @@ static void remove_shm(void) {
          so that the parent doesn't give up on us. */
 
          //if (inst_r) afl_area_ptr[0] = 1;
-  }
 
-  //open file and write to it
-  FILE* f = fopen("edge_cov_0", "w");
-  if (f == NULL)
-  {
-      puts("Fail to open file!");
-      exit(1);
-  }
-  else {
-      //write informations
-      for (int i = 0; i < MAP_SIZE; i++) {
-          fprintf(f, "%08xd\t%08x\t%08x\t%d\n", afl_cov_ptr, afl_cov_ptr[i].prev, afl_cov_ptr[i].cur, afl_cov_ptr[i].count);
+      //open file and write to it
+      FILE* f = fopen("edge_cov_0", "w");
+      if (f == NULL)
+      {
+          puts("Fail to open file!");
+          exit(1);
       }
+      else {
+          //write informations
+          for (int i = 0; i < MAP_SIZE; i++) {
+              fprintf(f, "%08x\t%08x\t%08x\t%d\n", afl_cov_ptr, afl_cov_ptr[i].prev, afl_cov_ptr[i].cur, afl_cov_ptr[i].count);
+          }
+      }
+      fclose(f);
   }
-  fclose(f);
 
   shmctl(shm_id, IPC_RMID, NULL);
   shmctl(shm_id1, IPC_RMID, NULL);
