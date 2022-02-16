@@ -75,13 +75,14 @@ struct cov_record {
     abi_ulong cur;
     int count;
 };
-static cov_record* afl_cov_ptr;
+static struct cov_record* afl_cov_ptr;
 
 /* Exported variables populated by the code patched into elfload.c: */
 
 abi_ulong afl_entry_point, /* ELF entry point (_start) */
           afl_start_code,  /* .text start pointer      */
-          afl_end_code;    /* .text end pointer        */
+          afl_end_code,    /* .text end pointer        */
+          afl_load_addr;
 
 /* Set in the child process in forkserver mode: */
 
