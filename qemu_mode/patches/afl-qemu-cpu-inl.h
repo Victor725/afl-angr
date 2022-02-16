@@ -70,6 +70,13 @@
 
 static unsigned char *afl_area_ptr;
 
+struct cov_record {
+    abi_ulong prev;
+    abi_ulong cur;
+    int count;
+};
+static cov_record* afl_cov_ptr;
+
 /* Exported variables populated by the code patched into elfload.c: */
 
 abi_ulong afl_entry_point, /* ELF entry point (_start) */
@@ -116,9 +123,11 @@ static inline TranslationBlock *tb_find(CPUState*, TranslationBlock*, int);
 static void afl_setup(void) {
 
   char *id_str = getenv(SHM_ENV_VAR),
+       *id_cov_str = getenv(SHM_COV_ENV_VAR),
        *inst_r = getenv("AFL_INST_RATIO");
 
   int shm_id;
+  int shm_cov_id;
 
   if (inst_r) {
 
@@ -146,6 +155,19 @@ static void afl_setup(void) {
     if (inst_r) afl_area_ptr[0] = 1;
 
 
+  }
+
+  if (id_cov_str) {
+
+      shm_cov_id = atoi(id_cov_str);
+      afl_cov_ptr = shmat(shm_cov_id, NULL, 0);
+
+      if (afl_cov_ptr == (void*)-1) exit(1);
+
+      /* With AFL_INST_RATIO set to a low value, we want to touch the bitmap
+         so that the parent doesn't give up on us. */
+
+         //if (inst_r) afl_area_ptr[0] = 1;
   }
 
   if (getenv("AFL_INST_LIBS")) {
@@ -236,6 +258,8 @@ static void afl_forkserver(CPUState *cpu) {
 static inline void afl_maybe_log(abi_ulong cur_loc) {
 
   static __thread abi_ulong prev_loc;
+  static __thread abi_ulong prev_loc_addr;
+  abi_ulong cur_loc_addr = cur_loc - afl_load_addr;
 
   /* Optimize for cur_loc > afl_end_code, which is the most likely case on
      Linux systems. */
@@ -255,9 +279,16 @@ static inline void afl_maybe_log(abi_ulong cur_loc) {
 
   if (cur_loc >= afl_inst_rms) return;
 
-  afl_area_ptr[cur_loc ^ prev_loc]++;
+  /*afl_area_ptr[cur_loc ^ prev_loc]++;
   prev_loc = cur_loc >> 1;
+  */
+  afl_area_ptr[cur_loc ^ prev_loc]++;
+  afl_cov_ptr[cur_loc ^ prev_loc].prev = prev_loc_addr;
+  afl_cov_ptr[cur_loc ^ prev_loc].cur = cur_loc_addr;
+  afl_cov_ptr[cur_loc ^ prev_loc].count++;
 
+  prev_loc = cur_loc >> 1;
+  prev_loc_addr = cur_loc_addr;
 }
 
 

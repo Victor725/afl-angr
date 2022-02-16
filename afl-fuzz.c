@@ -157,6 +157,7 @@ EXP_ST u8  virgin_bits[MAP_SIZE],     /* Regions yet untouched by fuzzing */
 static u8  var_bytes[MAP_SIZE];       /* Bytes that appear to be variable */
 
 static s32 shm_id;                    /* ID of the SHM region             */
+static s32 shm_id1;                   /*ID of afl_cov_ptr*/
 
 static volatile u8 stop_soon,         /* Ctrl-C pressed?                  */
                    clear_screen = 1,  /* Window resized?                  */
@@ -1226,11 +1227,45 @@ static inline void classify_counts(u32* mem) {
 
 
 /* Get rid of shared memory (atexit handler). */
-
+struct cov_record {
+    abi_ulong prev;
+    abi_ulong cur;
+    int count;
+};
 static void remove_shm(void) {
+  //TODO write afl_cov_ptr to a csv file
+
+  //get afl_cov_ptr
+  char* id_cov_str = getenv(SHM_COV_ENV_VAR);
+  if (id_cov_str) {
+      int shm_cov_id = atoi(id_cov_str);
+      cov_record* afl_cov_ptr = shmat(shm_cov_id, NULL, 0);
+
+      if (afl_cov_ptr == (void*)-1) exit(1);
+
+      /* With AFL_INST_RATIO set to a low value, we want to touch the bitmap
+         so that the parent doesn't give up on us. */
+
+         //if (inst_r) afl_area_ptr[0] = 1;
+  }
+
+  //open file and write to it
+  FILE* f = fopen("edge_cov_0", "w");
+  if (f == NULL)
+  {
+      puts("Fail to open file!");
+      exit(1);
+  }
+  else {
+      //write informations
+      for (int i = 0; i < MAP_SIZE; i++) {
+          fprintf(f, "%d\t%08x\t%08x\t%d\n", afl_cov_ptr, afl_cov_ptr[i].prev, afl_cov_ptr[i].cur, afl_cov_ptr[i].count);
+      }
+  }
+  fclose(f);
 
   shmctl(shm_id, IPC_RMID, NULL);
-
+  shmctl(shm_id1, IPC_RMID, NULL);
 }
 
 
@@ -1397,6 +1432,27 @@ EXP_ST void setup_shm(void) {
   trace_bits = shmat(shm_id, NULL, 0);
   
   if (trace_bits == (void *)-1) PFATAL("shmat() failed");
+
+
+  //MODIFIED add afl_cov_ptr
+  u8* shm_str1;
+
+  shm_id1 = shmget(IPC_PRIVATE, MAP_SIZE * sizeof(cov_record), IPC_CREAT | IPC_EXCL | 0600); //n*MAP_SIZE
+
+  if (shm_id1 < 0) PFATAL("shmget() failed");
+
+  //atexit(remove_shm);  have registered
+
+  shm_str1 = alloc_printf("%d", shm_id1);
+
+  /* If somebody is asking us to fuzz instrumented binaries in dumb mode,
+     we don't want them to detect instrumentation, since we won't be sending
+     fork server commands. This should be replaced with better auto-detection
+     later on, perhaps? */
+
+  if (!dumb_mode) {
+      setenv(SHM_COV_ENV_VAR, shm_str1, 1);
+  }
 
 }
 
