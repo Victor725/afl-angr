@@ -1239,7 +1239,7 @@ static void remove_shm(void) {
   char* id_cov_str = getenv(SHM_COV_ENV_VAR);
   if (id_cov_str) {
       int shm_cov_id = atoi(id_cov_str);
-      struct edge* afl_cov_ptr = shmat(shm_cov_id, NULL, 0);
+      struct edge* afl_cov_ptr = (struct edge*)shmat(shm_cov_id, NULL, 0);
 
       if (afl_cov_ptr == (void*)-1) exit(1);
 
@@ -1258,7 +1258,7 @@ static void remove_shm(void) {
       else {
           //write informations
           for (int i = 0; i < MAP_SIZE; i++) {
-              fprintf(f, "%08lx\t%08lx\t%08lx\t%08lx\n", afl_cov_ptr, afl_cov_ptr[i].prev, afl_cov_ptr[i].cur, afl_cov_ptr[i].count);
+              fprintf(f, "%x\t%x\t%x\t%x\n", afl_cov_ptr, afl_cov_ptr[i].prev, afl_cov_ptr[i].cur, afl_cov_ptr[i].count);
           }
       }
       fclose(f);
