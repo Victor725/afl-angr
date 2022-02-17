@@ -1230,7 +1230,7 @@ static inline void classify_counts(u32* mem) {
 struct cov_record {
     unsigned long prev;
     unsigned long cur;
-    int count;
+    unsigned long count;
 };
 static void remove_shm(void) {
   //TODO write afl_cov_ptr to a csv file
@@ -1258,7 +1258,7 @@ static void remove_shm(void) {
       else {
           //write informations
           for (int i = 0; i < MAP_SIZE; i++) {
-              fprintf(f, "%08x\t%08x\t%08x\t%d\n", afl_cov_ptr, afl_cov_ptr[i].prev, afl_cov_ptr[i].cur, afl_cov_ptr[i].count);
+              fprintf(f, "%08ld\t%08ld\t%08ld\t%08ld\n", afl_cov_ptr, afl_cov_ptr[i].prev, afl_cov_ptr[i].cur, afl_cov_ptr[i].count);
           }
       }
       fclose(f);
