@@ -68,21 +68,21 @@
 
 /* This is equivalent to afl-as.h: */
 
-static unsigned char *afl_area_ptr;
-
-struct cov_record {
-    abi_ulong prev;
-    abi_ulong cur;
-    int count;
+struct edge{
+  uint64_t prev; /*64 bits*/
+  uint64_t cur;  /*64 bits*/
+  uint64_t count;
 };
-static struct cov_record* afl_cov_ptr;
+
+static unsigned char *afl_area_ptr;
+static struct edge *afl_cov_ptr;
 
 /* Exported variables populated by the code patched into elfload.c: */
 
 abi_ulong afl_entry_point, /* ELF entry point (_start) */
           afl_start_code,  /* .text start pointer      */
           afl_end_code,    /* .text end pointer        */
-          afl_load_addr;
+          afl_load_addr;   /* ELF load address       */
 
 /* Set in the child process in forkserver mode: */
 
@@ -127,8 +127,8 @@ static void afl_setup(void) {
        *id_cov_str = getenv(SHM_COV_ENV_VAR),
        *inst_r = getenv("AFL_INST_RATIO");
 
-  int shm_id;
-  int shm_cov_id;
+  int shm_id,
+	  shm_cov_id;
 
   if (inst_r) {
 
@@ -160,15 +160,17 @@ static void afl_setup(void) {
 
   if (id_cov_str) {
 
-      shm_cov_id = atoi(id_cov_str);
-      afl_cov_ptr = shmat(shm_cov_id, NULL, 0);
+    shm_cov_id = atoi(id_cov_str);
+    afl_cov_ptr = shmat(shm_cov_id, NULL, 0);
 
-      if (afl_cov_ptr == (void*)-1) exit(1);
+    if (afl_cov_ptr == (void*)-1) exit(1);
 
-      /* With AFL_INST_RATIO set to a low value, we want to touch the bitmap
-         so that the parent doesn't give up on us. */
+    /* With AFL_INST_RATIO set to a low value, we want to touch the bitmap
+       so that the parent doesn't give up on us. */
 
-         //if (inst_r) afl_area_ptr[0] = 1;
+    //if (inst_r) afl_area_ptr[0] = 1;
+
+
   }
 
   if (getenv("AFL_INST_LIBS")) {
@@ -280,9 +282,6 @@ static inline void afl_maybe_log(abi_ulong cur_loc) {
 
   if (cur_loc >= afl_inst_rms) return;
 
-  /*afl_area_ptr[cur_loc ^ prev_loc]++;
-  prev_loc = cur_loc >> 1;
-  */
   afl_area_ptr[cur_loc ^ prev_loc]++;
   afl_cov_ptr[cur_loc ^ prev_loc].prev = prev_loc_addr;
   afl_cov_ptr[cur_loc ^ prev_loc].cur = cur_loc_addr;
@@ -290,6 +289,7 @@ static inline void afl_maybe_log(abi_ulong cur_loc) {
 
   prev_loc = cur_loc >> 1;
   prev_loc_addr = cur_loc_addr;
+
 }
 
 

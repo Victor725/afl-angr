@@ -1227,10 +1227,10 @@ static inline void classify_counts(u32* mem) {
 
 
 /* Get rid of shared memory (atexit handler). */
-struct cov_record {
-    unsigned long prev;
-    unsigned long cur;
-    unsigned long count;
+struct edge {
+    uint64_t prev; /*64 bits*/
+    uint64_t cur;  /*64 bits*/
+    uint64_t count;
 };
 static void remove_shm(void) {
   //TODO write afl_cov_ptr to a csv file
@@ -1239,7 +1239,7 @@ static void remove_shm(void) {
   char* id_cov_str = getenv(SHM_COV_ENV_VAR);
   if (id_cov_str) {
       int shm_cov_id = atoi(id_cov_str);
-      struct cov_record* afl_cov_ptr = shmat(shm_cov_id, NULL, 0);
+      struct edge* afl_cov_ptr = shmat(shm_cov_id, NULL, 0);
 
       if (afl_cov_ptr == (void*)-1) exit(1);
 
@@ -1437,7 +1437,7 @@ EXP_ST void setup_shm(void) {
   //MODIFIED add afl_cov_ptr
   u8* shm_str1;
 
-  shm_id1 = shmget(IPC_PRIVATE, MAP_SIZE * 12, IPC_CREAT | IPC_EXCL | 0600); //n*MAP_SIZE
+  shm_id1 = shmget(IPC_PRIVATE, MAP_SIZE * 24, IPC_CREAT | IPC_EXCL | 0600); //n*MAP_SIZE
 
   if (shm_id1 < 0) PFATAL("shmget() failed");
 
