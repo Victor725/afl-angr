@@ -1258,7 +1258,7 @@ static void remove_shm(void) {
       else {
           //write informations
           for (int i = 0; i < MAP_SIZE; i++) {
-              fprintf(f, "%08x\t%08x\t%08x\t%08x\n", afl_cov_ptr, afl_cov_ptr[i].prev, afl_cov_ptr[i].cur, afl_cov_ptr[i].count);
+              fprintf(f, "%08lx\t%08lx\t%08lx\t%08lx\n", afl_cov_ptr, afl_cov_ptr[i].prev, afl_cov_ptr[i].cur, afl_cov_ptr[i].count);
           }
       }
       fclose(f);
